@@ -16,7 +16,7 @@ function AppNavbar() {
   };
 
   return (
-    <Navbar bg={dark ? "dark" : "light"} variant={dark ? "dark" : "light"} expand="lg">
+    <Navbar className={dark ? "navbar bg-gradient-dark" : "navbar bg-gradient-light"} bg={dark ? "dark" : "light"} variant={dark ? "dark" : "light"} expand="lg">
       <Container>
         <Navbar.Brand as={Link} to="/">R-Project</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />

@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
+import { ThemeContext } from "./ThemeContext";
 
 function Users() {
   const [users, setUsers] = useState([]);
+  const { dark, themeClass } = useContext(ThemeContext);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -16,8 +18,8 @@ function Users() {
   }, []);
 
   return (
-    <div className="container mt-3">
-      <h2>Utenti</h2>
+    <div className={`container mt-3 ${themeClass}`}>
+      <h2 className={dark ? "text-light" : "text-dark"}>Utenti</h2>
       <table className="table table-striped">
         <thead>
           <tr><th>ID</th><th>Login</th><th>Fullname</th><th>Group</th></tr>

@@ -3,3 +3,24 @@ body {
   padding: 0;
   font-family: sans-serif;
 }
+
+body, body.light-theme {
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+body.dark-theme {
+  /* background-color: #212529; */
+  background-color: #212529;
+  color: #f8f9fa;
+}
+
+
+.bg-gradient-light {
+  /* background: linear-gradient(180deg, #ffffff 0%, #e4e9ed 100%) */
+  background: linear-gradient(180deg, #ffffff 0%, #999999 100%)
+}
+
+.bg-gradient-dark {
+  background: linear-gradient(0deg, #343a40 0%, #6c757d 100%);
+}

@@ -1,9 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AppNavbar from "./Navbar";
-// import logo from './logo.svg';
 import './App.css';
-// import { ThemeProvider, ThemeContext } from "./ThemeContext";
 
 import Login from "./Login";
 import Users from "./Users";
@@ -29,12 +27,5 @@ function App() {
     </Router>
   );
 }
-
-      // <div className={themeClass}>
-      //   <button className="btn btn-secondary" onClick={toggleTheme}>
-      //     Toggle Tema
-      //   </button>
-      //   {/* router e pagine */}
-      // </div>
 
 export default App;
