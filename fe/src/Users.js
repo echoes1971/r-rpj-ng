@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import axios from "axios";
+import api from "./axios";
 import { app_cfg } from "./app.cfg";
 import { ThemeContext } from "./ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -21,15 +21,15 @@ function Users() {
   const fetchUsers = async (search = "") => {
     const token = localStorage.getItem("token");
     try {
-      const res = await axios.get(
+      const res = await api.get(
         search
           ? endpoint + `/users?search=${encodeURIComponent(search)}`
           : endpoint + "/users",
         { headers: { Authorization: `Bearer ${token}` }, }
       );
-      setUsers(res.data); // supponendo che l'API restituisca un array
+      setUsers(res.data || []); // supponendo che l'API restituisca un array
     } catch (err) {
-      alert("Errore caricamento utenti"+err);
+      console.log("Error loading users.");
     }
   };
 
@@ -54,7 +54,7 @@ function Users() {
     try {
       if (!editingUser.ID) {
         // Nuovo utente
-        await axios.post(
+        await api.post(
           endpoint + `/users`,
           editingUser,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -64,7 +64,7 @@ function Users() {
         return;
       }
       // Utente esistente
-      await axios.put(
+      await api.put(
         endpoint + `/users/${editingUser.ID}`,
         editingUser,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -79,7 +79,7 @@ function Users() {
   const handleDelete = async () => {
     if (window.confirm("Are you sure to delete this user?")) {
       const token = localStorage.getItem("token");
-      await axios.delete(endpoint + `/users/${editingUser.ID}`, {
+      await api.delete(endpoint + `/users/${editingUser.ID}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEditingUser(null);
@@ -114,7 +114,7 @@ function Users() {
         </button>
       )}
 
-      {!editingUser && (
+      {!editingUser && users.length > 0 && (
         <table 
         className={`table ${dark ? "table-dark" : "table-striped"} table-hover`}
         >

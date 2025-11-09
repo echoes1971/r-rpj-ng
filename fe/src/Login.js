@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "./axios";
 import { useTranslation } from "react-i18next";
 
 function Login() {
@@ -10,8 +10,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // const res = await axios.post("http://localhost:1971/login", { login, pwd });
-      const res = await axios.post("/login", { login, pwd });
+      const res = await api.post("/login", { login, pwd });
       localStorage.setItem("token", res.data.access_token);
       // store username for Navbar display
       localStorage.setItem("username", login);
