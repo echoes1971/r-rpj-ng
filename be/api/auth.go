@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"rprj/be/db"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -36,11 +38,21 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		log.Printf("err: %v\n", err)
 		if err != nil || !token.Valid {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
+			log.Print("Deleting token from db due to invalidity.")
+			db.DeleteToken(tokenString)
 			return
 		}
 
-		// Se vuoi, puoi estrarre l'user_id dai claims
-		// userID := claims["user_id"].(string)
+		// Retrieve user ID from claims
+		userID := claims["user_id"].(string)
+		log.Printf("User ID autenticato: %s\n", userID)
+
+		// Search the token in the database to ensure it's valid
+		if !db.IsTokenValid(tokenString, userID) {
+			http.Error(w, "token not recognized", http.StatusUnauthorized)
+			log.Print("Token not found in the database")
+			return
+		}
 
 		// Passa la richiesta all'handler successivo
 		next.ServeHTTP(w, r)
