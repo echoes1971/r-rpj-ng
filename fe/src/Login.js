@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import api from "./axios";
-import { ThemeContext } from "./ThemeContext";
 import { useTranslation } from "react-i18next";
+import { ThemeContext } from "./ThemeContext";
 
 function Login() {
   const { t } = useTranslation();
@@ -16,10 +16,9 @@ function Login() {
       localStorage.setItem("token", res.data.access_token);
       // store username for Navbar display
       localStorage.setItem("username", login);
-      // redirect to /users
       window.location.href = "/users";
     } catch (err) {
-      alert("Login fallito");
+      alert("Login failed");
     }
   };
 
