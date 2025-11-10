@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
 import api from "./axios";
-import { app_cfg } from "./app.cfg";
 import { ThemeContext } from "./ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -10,8 +9,6 @@ function Users() {
   const [query, setQuery] = useState("");
   const [editingUser, setEditingUser] = useState(null); // utente in modifica
   const { dark, themeClass } = useContext(ThemeContext);
-  const endpoint = app_cfg.endpoint;
-  console.log("Using endpoint:", endpoint);
 
     // Carica tutti gli utenti all'inizio
   useEffect(() => {
@@ -23,8 +20,8 @@ function Users() {
     try {
       const res = await api.get(
         search
-          ? endpoint + `/users?search=${encodeURIComponent(search)}`
-          : endpoint + "/users",
+          ? `/users?search=${encodeURIComponent(search)}`
+          : "/users",
         { headers: { Authorization: `Bearer ${token}` }, }
       );
       setUsers(res.data || []); // supponendo che l'API restituisca un array
@@ -54,21 +51,13 @@ function Users() {
     try {
       if (!editingUser.ID) {
         // Nuovo utente
-        await api.post(
-          endpoint + `/users`,
-          editingUser,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await api.post(`/users`, editingUser, { headers: { Authorization: `Bearer ${token}` } } );
         setEditingUser(null);
         fetchUsers();
         return;
       }
       // Utente esistente
-      await api.put(
-        endpoint + `/users/${editingUser.ID}`,
-        editingUser,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/users/${editingUser.ID}`, editingUser, { headers: { Authorization: `Bearer ${token}` } } );
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
@@ -79,7 +68,7 @@ function Users() {
   const handleDelete = async () => {
     if (window.confirm("Are you sure to delete this user?")) {
       const token = localStorage.getItem("token");
-      await api.delete(endpoint + `/users/${editingUser.ID}`, {
+      await api.delete(`/users/${editingUser.ID}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEditingUser(null);
