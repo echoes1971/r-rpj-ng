@@ -13,13 +13,13 @@ import (
 // default JWT key; replace with a secure value loaded from your app configuration at startup
 var JWTKey = []byte("change-me-secret")
 
-type Response struct {
-	Message string `json:"message"`
+type PingResponse struct {
+	Ping string `json:"ping"`
 }
 
-func HelloHandler(w http.ResponseWriter, r *http.Request) {
+func PingHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Response{Message: "Ciao dal server API!"})
+	json.NewEncoder(w).Encode(PingResponse{Ping: "Pong"})
 }
 
 type Credentials struct {

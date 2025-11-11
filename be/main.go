@@ -72,7 +72,7 @@ func main() {
 	r.HandleFunc("/login", api.LoginHandler).Methods("POST")
 
 	// Endpoint pubblico: hello
-	r.HandleFunc("/hello", api.HelloHandler).Methods("GET")
+	r.HandleFunc("/ping", api.PingHandler).Methods("GET")
 
 	// Endpoint protetti: CRUD utenti
 	userRoutes := r.PathPrefix("/users").Subrouter()
