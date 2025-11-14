@@ -10,6 +10,7 @@ function Groups() {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
   const [editingGroup, setEditingGroup] = useState(null); // gruppo in modifica
+  const [errorMessage, setErrorMessage] = useState("");
   const { dark, themeClass } = useContext(ThemeContext);
 
     // Carica tutti i gruppi all'inizio
@@ -17,6 +18,16 @@ function Groups() {
     fetchGroups();
     fetchUsers();
   }, []);
+
+  // Auto-dismiss error message after 5 seconds
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        setErrorMessage("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
 
   const fetchGroups = async (search = "") => {
     const token = localStorage.getItem("token");
@@ -58,10 +69,12 @@ function Groups() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEditingGroup({ ...group, user_ids: res.data.user_ids || [] });
+      setErrorMessage("");
     } catch (err) {
       console.log("Error loading group details.");
       // Fallback ai dati base se la chiamata fallisce
       setEditingGroup({ ...group, user_ids: [] });
+      setErrorMessage("");
     }
   };
 
@@ -72,6 +85,13 @@ function Groups() {
   };
 
   const handleSave = async () => {
+    // Validazione
+    if (!editingGroup.Name || editingGroup.Name.trim() === "") {
+      setErrorMessage(t("groups.name_required") || "Group name is required");
+      return;
+    }
+    
+    setErrorMessage("");
     const token = localStorage.getItem("token");
     try {
       if (!editingGroup.ID) {
@@ -94,7 +114,9 @@ function Groups() {
       setEditingGroup(null);
       fetchGroups();
     } catch (err) {
-      alert("Error saving group.");
+      // Extract error message from response
+      const errorMsg = err.response?.data?.error || err.message || "Error saving group";
+      setErrorMessage(errorMsg);
     }
   };
 
@@ -105,11 +127,13 @@ function Groups() {
             await api.delete(`/groups/${editingGroup.ID}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+            setEditingGroup(null);
+            fetchGroups();
         } catch (err) {
-            alert("Error deleting group.");
+            // Extract error message from response
+            const errorMsg = err.response?.data?.error || err.message || "Error deleting group";
+            setErrorMessage(errorMsg);
         }
-        setEditingGroup(null);
-        fetchGroups();
     }
   };
 
@@ -134,7 +158,10 @@ function Groups() {
       {!editingGroup && (
         <button
           className="btn btn-success mb-3"
-          onClick={() => setEditingGroup({ ID: "", Name: "", Description: "", user_ids: []})}
+          onClick={() => {
+            setEditingGroup({ ID: "", Name: "", Description: "", user_ids: []});
+            setErrorMessage("");
+          }}
         >
           {t("groups.newGroup")}
         </button>
@@ -176,6 +203,15 @@ function Groups() {
       {editingGroup && (
         <div className={`card p-3 mt-3 ${dark ? "bg-dark text-light" : "bg-light text-dark" }`}>
           <h4>{editingGroup.ID>'' ? t("common.edit") : t("common.create")} {t("groups.group")}</h4>
+          
+          {/* Error message at the top */}
+          {errorMessage && (
+            <div className="alert alert-danger alert-dismissible fade show" role="alert">
+              {errorMessage}
+              <button type="button" className="btn-close" onClick={() => setErrorMessage("")} aria-label="Close"></button>
+            </div>
+          )}
+          
           <input
             className={`form-control mb-2 ${dark ? "bg-secondary text-light" : ""}`}
             name="ID"
@@ -201,6 +237,7 @@ function Groups() {
           />
           
           {/* Association Manager per gli utenti */}
+          {editingGroup.ID==='' ? '' :
           <AssociationManager
             title={t("groups.users") || "Users"}
             available={users}
@@ -209,6 +246,7 @@ function Groups() {
             labelKey="Fullname"
             valueKey="ID"
           />
+          }
 
           <div>
             <button className="btn btn-success me-2" onClick={handleSave}>

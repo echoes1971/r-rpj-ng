@@ -2,24 +2,24 @@ package db
 
 import (
 	"database/sql"
-	"log"
+	"fmt"
 
 	"rprj/be/models"
 )
 
-// CREATE
-func CreateGroup(g models.DBGroup) (string, error) {
-	if g.ID == "" {
-		newID, _ := uuid16HexGo()
-		log.Print("newID=", newID)
-		g.ID = newID
-	}
-	_, err := DB.Exec(
-		"INSERT INTO "+tablePrefix+"groups (id, name, description) VALUES (?, ?, ?)",
-		g.ID, g.Name, g.Description,
-	)
-	return g.ID, err
-}
+// CREATE (deprecated - use CreateGroupWithTransaction)
+// func CreateGroup(g models.DBGroup) (string, error) {
+// 	if g.ID == "" {
+// 		newID, _ := uuid16HexGo()
+// 		log.Print("newID=", newID)
+// 		g.ID = newID
+// 	}
+// 	_, err := DB.Exec(
+// 		"INSERT INTO "+tablePrefix+"groups (id, name, description) VALUES (?, ?, ?)",
+// 		g.ID, g.Name, g.Description,
+// 	)
+// 	return g.ID, err
+// }
 
 // READ
 func GetGroupByID(id string) (*models.DBGroup, error) {
@@ -39,22 +39,36 @@ func GetGroupByID(id string) (*models.DBGroup, error) {
 	return &g, nil
 }
 
-// UPDATE
-func UpdateGroup(g models.DBGroup) error {
-	_, err := DB.Exec(
-		"UPDATE "+tablePrefix+"groups SET name = ?, description = ? WHERE id = ?",
-		g.Name, g.Description, g.ID,
-	)
-	return err
-}
+// UPDATE (deprecated - use UpdateGroupWithTransaction)
+// func UpdateGroup(g models.DBGroup) error {
+// 	_, err := DB.Exec(
+// 		"UPDATE "+tablePrefix+"groups SET name = ?, description = ? WHERE id = ?",
+// 		g.Name, g.Description, g.ID,
+// 	)
+// 	return err
+// }
 
 // DELETE
 func DeleteGroup(id string) error {
-	_, err := DB.Exec(
-		"DELETE FROM "+tablePrefix+"groups WHERE id = ?",
-		id,
-	)
-	return err
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete group-user associations
+	_, err = tx.Exec("DELETE FROM "+tablePrefix+"users_groups WHERE group_id=?", id)
+	if err != nil {
+		return err
+	}
+
+	// Delete group
+	_, err = tx.Exec("DELETE FROM "+tablePrefix+"groups WHERE id=?", id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // SEARCH
@@ -91,4 +105,91 @@ func SearchGroupsBy(search string, orderBy string) ([]models.DBGroup, error) {
 		groups = append(groups, g)
 	}
 	return groups, nil
+}
+
+// CreateGroup creates a group and user associations in a single transaction
+func CreateGroup(g models.DBGroup, userIDs []string) (*models.DBGroup, error) {
+	tx, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	// Check that group with same name does not already exist
+	var existingGroupID string
+	err = tx.QueryRow("SELECT id FROM "+tablePrefix+"groups WHERE name = ?", g.Name).Scan(&existingGroupID)
+	if err != sql.ErrNoRows {
+		if err == nil {
+			return nil, fmt.Errorf("group with name '%s' already exists", g.Name)
+		}
+		return nil, err
+	}
+
+	// Generate ID
+	groupID, _ := uuid16HexGo()
+	g.ID = groupID
+
+	// Create group
+	_, err = tx.Exec(
+		"INSERT INTO "+tablePrefix+"groups (id, name, description) VALUES (?, ?, ?)",
+		g.ID, g.Name, g.Description,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add users to group
+	for _, userID := range userIDs {
+		_, err = tx.Exec(
+			"INSERT INTO "+tablePrefix+"users_groups (user_id, group_id) VALUES (?, ?)",
+			userID, groupID,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Commit transaction
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &g, nil
+}
+
+// UpdateGroup updates group and user associations in a single transaction
+func UpdateGroup(g models.DBGroup, userIDs []string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Update group
+	_, err = tx.Exec(
+		"UPDATE "+tablePrefix+"groups SET name = ?, description = ? WHERE id = ?",
+		g.Name, g.Description, g.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Delete all existing user associations
+	_, err = tx.Exec("DELETE FROM "+tablePrefix+"users_groups WHERE group_id=?", g.ID)
+	if err != nil {
+		return err
+	}
+
+	// Recreate user associations
+	for _, userID := range userIDs {
+		_, err = tx.Exec(
+			"INSERT INTO "+tablePrefix+"users_groups (user_id, group_id) VALUES (?, ?)",
+			userID, g.ID,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }

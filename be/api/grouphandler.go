@@ -74,7 +74,17 @@ func CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		UserIDs     []string `json:"user_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request format"})
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Group name is required"})
 		return
 	}
 
@@ -83,26 +93,24 @@ func CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description,
 	}
 
-	groupID, err := db.CreateGroup(g)
+	// Create group with transaction
+	createdGroup, err := db.CreateGroup(g, req.UserIDs)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		// Check if it's a duplicate name error
+		if strings.Contains(err.Error(), "already exists") {
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create group: " + err.Error()})
+		}
 		return
 	}
-	g.ID = groupID
 
-	// Add users to group
-	for _, userID := range req.UserIDs {
-		if err := db.CreateUserGroup(models.DBUserGroup{
-			UserID:  userID,
-			GroupID: groupID,
-		}); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(g)
+	json.NewEncoder(w).Encode(createdGroup)
 }
 
 // PUT /groups/{id}
@@ -110,7 +118,9 @@ func UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	if id == "" {
-		http.Error(w, "missing id", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Missing group ID"})
 		return
 	}
 
@@ -120,7 +130,17 @@ func UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		UserIDs     []string `json:"user_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request format"})
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Group name is required"})
 		return
 	}
 
@@ -130,27 +150,15 @@ func UpdateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description,
 	}
 
-	if err := db.UpdateGroup(g); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Update group with transaction
+	if err := db.UpdateGroup(g, req.UserIDs); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update group: " + err.Error()})
 		return
 	}
 
-	// Update group users: delete all and recreate
-	if err := db.DeleteUserGroupsByGroupID(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	for _, userID := range req.UserIDs {
-		if err := db.CreateUserGroup(models.DBUserGroup{
-			UserID:  userID,
-			GroupID: id,
-		}); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -159,21 +167,24 @@ func DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	if id == "" {
-		http.Error(w, "missing id", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Missing group ID"})
 		return
 	}
 
 	// Groups with negative ID cannot be deleted (system groups)
 	if strings.HasPrefix(id, "-") {
-		http.Error(w, "cannot delete system groups", http.StatusForbidden)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Cannot delete system groups"})
 		return
 	}
 
-	// TODO:
-	// - check if any user belongs to this group
-
 	if err := db.DeleteGroup(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to delete group: " + err.Error()})
 		return
 	}
 

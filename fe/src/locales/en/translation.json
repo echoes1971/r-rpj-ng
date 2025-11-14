@@ -37,7 +37,8 @@
     "newGroup": "New Group",
     "group": "Group",
     "groups": "Groups",
-    "users": "Users"
+    "users": "Users",
+    "name_required": "Group name is required"
   },
   "association": {
     "compact_mode": "Compact mode",
