@@ -201,7 +201,7 @@ function Users() {
         >
           <thead>
             <tr>
-              <th className="d-none d-md-table-cell">ID</th>
+              <th className="d-none d-md-table-cell">#</th>
               <th>Login</th>
               <th>Fullname</th>
               <th className="d-none d-md-table-cell">Group</th>
@@ -209,9 +209,9 @@ function Users() {
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
+            {users.map((u, index) => (
               <tr key={u.ID}>
-                <td className="d-none d-md-table-cell">{u.ID}</td>
+                <td className="d-none d-md-table-cell">{index+1}</td>
                 <td>{u.Login}</td>
                 <td>{u.Fullname}</td>
                 <td className="d-none d-md-table-cell">{getGroupName(u.GroupID)}</td>

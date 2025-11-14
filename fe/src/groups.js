@@ -173,16 +173,16 @@ function Groups() {
         >
           <thead>
             <tr>
-              <th className="d-none d-md-table-cell">ID</th>
+              <th className="d-none d-md-table-cell">#</th>
               <th>Name</th>
               <th>Description</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {groups.map(g => (
+            {groups.map((g, index) => (
               <tr key={g.ID}>
-                <td className="d-none d-md-table-cell">{g.ID}</td>
+                <td className="d-none d-md-table-cell">{index+1}</td>
                 <td>{g.Name}</td>
                 <td>{g.Description}</td>
                 <td>
