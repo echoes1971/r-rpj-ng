@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS `rra_dbversion` (
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 */
 type DBVersion struct {
-	Version int
+	ModelName string
+	Version   int
 }
 
 // Struttura che rappresenta la tabella
